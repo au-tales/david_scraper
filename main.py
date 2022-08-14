@@ -5,9 +5,6 @@ load_dotenv()
 from fastapi import FastAPI
 from pymongo import MongoClient  # DataBase Connected Section
 client = MongoClient(os.environ.get("mongodbUrl"))
-
-from functools import total_ordering
-from lib2to3.pgen2 import driver
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
