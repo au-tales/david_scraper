@@ -11,9 +11,10 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from bson import json_util
 mydb = client['scrape']
+mycol = mydb["data"]
 app = FastAPI()
 
-mycol = mydb["data"]
+
 @app.get("/")
 def getItems(url):
 
@@ -35,8 +36,7 @@ def getItems(url):
         }
 
 
-    mydb = client['scrape']
-    mycol = mydb["data"]
+  
     mycol.insert_one(dict)
 
     driver.quit()
