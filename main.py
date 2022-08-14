@@ -44,12 +44,12 @@ def getItems(url):
 
     driver.quit()
 
-    alldata=[]
+    resData=[]
     for dic in mycol.find({}):
-             hamza = json.loads(json_util.dumps(dic))
-             alldata.append(hamza)
+             data_load = json.loads(json_util.dumps(dic))
+             resData.append(data_load)
             
-    return {"Scrape Data":alldata}
+    return {"Scrape Data":resData}
     
 
 
