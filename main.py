@@ -1,5 +1,5 @@
 import json
-
+import time
 import random
 import os
 from decouple import config
@@ -9,6 +9,7 @@ from pymongo import MongoClient  # DataBase Connected Section
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.proxy import ProxyType, Proxy #proxy module
 from selenium.webdriver.chrome.options import Options
 from bson import json_util
 from fastapi import FastAPI, Body, Request, Query
@@ -37,11 +38,24 @@ def aws_scrapper(url, is_head_less: bool):
     proxyEnv=config("proxies")
     allProxies.append(proxyEnv.split(","))
     for indexProxy in allProxies:
-            randomProxy = random.choice(indexProxy)      
+            proxy_ip = random.choice(indexProxy)
+
+    proxy =Proxy()
+    proxy.proxy_type = ProxyType.MANUAL
+    proxy.http_proxy = proxy_ip
+    proxy.ssl_proxy = proxy_ip
+
+
+    capabilities = webdriver.DesiredCapabilities.CHROME
+    proxy.add_to_capabilities(capabilities)
+    
+
+
+
+
     options = Options()
-    options.add_argument("--proxy-server={}".format(randomProxy))
     options.headless = is_head_less
-    driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
+    driver = webdriver.Chrome(ChromeDriverManager().install(),desired_capabilities=capabilities,options=options)
     driver.maximize_window()
     driver.get(url)
     product_title = driver.find_element(By.ID, "title").text
