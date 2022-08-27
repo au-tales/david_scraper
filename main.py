@@ -1,4 +1,6 @@
 import json
+
+import random
 import os
 from decouple import config
 from fastapi import FastAPI
@@ -21,15 +23,25 @@ client = MongoClient(MONGO_CLIENT_URL)
 data_base = client["product_scraper"]
 tables_columns = data_base["products"]
 
+
+
+
 @app.get("/")
 def index():
-    return {"details": "API is working"}
+    return {"details": "good"} 
+
 
 @app.get("/aws-product-scrapper")
 def aws_scrapper(url, is_head_less: bool):
+    allProxies=[]
+    proxyEnv=config("proxies")
+    allProxies.append(proxyEnv.split(","))
+    for indexProxy in allProxies:
+            randomProxy = random.choice(indexProxy)      
     options = Options()
+    options.add_argument("--proxy-server={}".format(randomProxy))
     options.headless = is_head_less
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+    driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
     driver.maximize_window()
     driver.get(url)
     product_title = driver.find_element(By.ID, "title").text
