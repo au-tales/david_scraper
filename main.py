@@ -14,8 +14,12 @@ from selenium.webdriver.chrome.options import Options
 from bson import json_util
 from fastapi import FastAPI, Body, Request, Query
 import uvicorn
-import pytesseract
-from PIL import Image
+from bs4 import BeautifulSoup
+from decouple import config
+import random
+import json
+import requests
+from scrape_products import get_title, get_price,get_store_link,get_about_product,get_availability,get_rating, get_review_count
 
 
 app = FastAPI()
@@ -40,70 +44,41 @@ def is_capcha(driver):
     else:
         return False
 
-def resolve_capcha(driver):
-
-
-    reader = easyocr.Reader(['ch_sim','en']) # this needs to run only once to load the model into memory
-    result = reader.readtext('chinese.jpg')
-
-    from captcha_solver import CaptchaSolver
-
-    solver = CaptchaSolver('twocaptcha', api_key='9912c987409b99955d259a43f4a1a636')
-    raw_data = open('captcha.png', 'rb').read()
-    print(solver.solve_captcha(raw_data))
-    pass
 
 
 @app.get("/aws-product-scrapper")
-def aws_scrapper(url, is_head_less: bool= False):
-    allProxies=[]
-    proxyEnv=config("proxies")
-    allProxies.append(proxyEnv.split(","))
-    for indexProxy in allProxies:
-            proxy_ip = random.choice(indexProxy)
+def aws_scrapper(product_id="B00I9MZZTC"):
+    dict = {}
+    HEADERS = ({'User-Agent':
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36',
+            'Accept-Language': 'en-US, en;q=0.5'})
+    URL = f"https://www.amazon.com/dp/{product_id}"
+
+    with requests.Session() as session:
+        webpage = session.get(URL, headers=HEADERS)
+        soup = BeautifulSoup(webpage.content, "lxml")
+
+        dict = {
+            "product_title": get_title(soup),
+            "price": get_price(soup),
+            "about_item": json.dumps(get_about_product(soup)),
+            "product_rating": get_rating(soup),
+            "total_rating": get_review_count(soup),
+            "availablity": get_availability(soup),
+            "store_link":get_store_link(soup),
+            "product_id": product_id
+        }
+
+    print("------------>", dict)
+    try:
+        find_object = [x for x in tables_columns.find({'product_id': f"{product_id}"})][0]
+        if "_id" in find_object:
+            tables_columns.find_one_and_update({'_id': find_object['_id']}, {'$set': dict})
+    except IndexError as e:
+        tables_columns.insert_one(dict)
 
 
-    options = Options()
-    options.add_argument('--proxy-server=%s' % proxy_ip)
-    options.headless = (is_head_less:= False)
-
-
-    driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
-    driver.maximize_window()
-    driver.implicitly_wait(0.6)
-    driver.get('https://www.amazon.com/Belli-Acne-Control-Spot-Treatment/dp/B00I9MZZTC')
-
-    if is_capcha(driver):
-
-    product_title = driver.find_element(By.ID, "title").text
-    total_rating = driver.find_element(By.ID, "acrCustomerReviewText").text
-    product_rating = driver.find_element(By.ID, 'acrPopover').get_attribute('title')
-    store_link = driver.find_element(By.ID, "bylineInfo").get_attribute('href')
-    about_item = driver.find_element(By.ID, "feature-bullets").text
-    price = driver.find_element(By.XPATH, '//*[@id="availability"]/span').text
-
-    store_url = f"{store_link}"
-    driver.get(store_url)
-    company_name = driver.find_element(By.CSS_SELECTOR, "h1 > span > span").text
-
-    dict = {
-
-        "product_title": product_title,
-        "company_name": company_name,
-        "about_item": json.dumps(about_item),
-        "price": price,
-        "product_rating": product_rating,
-        "total_rating": total_rating,
-        "store_link": store_url,
-
-    }
-
-    # tables_columns.insert_one(dict)
-
-    # driver.quit()
-    dict['_id'] = str(dict['_id'])
-
-    return {"data": 'dict'}
+    return {"data": dict}
 
 
 @app.get("/all-products")
@@ -116,4 +91,4 @@ def get_all_records():
     return {"data": data}
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8060, reload=True)
