@@ -14,6 +14,8 @@ from selenium.webdriver.chrome.options import Options
 from bson import json_util
 from fastapi import FastAPI, Body, Request, Query
 import uvicorn
+import pytesseract
+from PIL import Image
 
 
 app = FastAPI()
@@ -29,35 +31,50 @@ tables_columns = data_base["products"]
 
 @app.get("/")
 def index():
-    return {"details": "good"} 
+    return {"details": "good"}
+
+def is_capcha(driver):
+    text = driver.find_elements(By.CSS_SELECTOR, 'h4')[0].text
+    if text == 'Enter the characters you see below':
+        return True
+    else:
+        return False
+
+def resolve_capcha(driver):
+
+
+    reader = easyocr.Reader(['ch_sim','en']) # this needs to run only once to load the model into memory
+    result = reader.readtext('chinese.jpg')
+
+    from captcha_solver import CaptchaSolver
+
+    solver = CaptchaSolver('twocaptcha', api_key='9912c987409b99955d259a43f4a1a636')
+    raw_data = open('captcha.png', 'rb').read()
+    print(solver.solve_captcha(raw_data))
+    pass
 
 
 @app.get("/aws-product-scrapper")
-def aws_scrapper(url, is_head_less: bool):
+def aws_scrapper(url, is_head_less: bool= False):
     allProxies=[]
     proxyEnv=config("proxies")
     allProxies.append(proxyEnv.split(","))
     for indexProxy in allProxies:
             proxy_ip = random.choice(indexProxy)
 
-    proxy =Proxy()
-    proxy.proxy_type = ProxyType.MANUAL
-    proxy.http_proxy = proxy_ip
-    proxy.ssl_proxy = proxy_ip
-
-
-    capabilities = webdriver.DesiredCapabilities.CHROME
-    proxy.add_to_capabilities(capabilities)
-    
-
-
-
 
     options = Options()
-    options.headless = is_head_less
-    driver = webdriver.Chrome(ChromeDriverManager().install(),desired_capabilities=capabilities,options=options)
+    options.add_argument('--proxy-server=%s' % proxy_ip)
+    options.headless = (is_head_less:= False)
+
+
+    driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
     driver.maximize_window()
-    driver.get(url)
+    driver.implicitly_wait(0.6)
+    driver.get('https://www.amazon.com/Belli-Acne-Control-Spot-Treatment/dp/B00I9MZZTC')
+
+    if is_capcha(driver):
+
     product_title = driver.find_element(By.ID, "title").text
     total_rating = driver.find_element(By.ID, "acrCustomerReviewText").text
     product_rating = driver.find_element(By.ID, 'acrPopover').get_attribute('title')
@@ -81,12 +98,12 @@ def aws_scrapper(url, is_head_less: bool):
 
     }
 
-    tables_columns.insert_one(dict)
+    # tables_columns.insert_one(dict)
 
-    driver.quit()
+    # driver.quit()
     dict['_id'] = str(dict['_id'])
 
-    return {"data": dict}
+    return {"data": 'dict'}
 
 
 @app.get("/all-products")
