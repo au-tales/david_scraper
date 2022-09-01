@@ -103,6 +103,7 @@ def load_browser(product_id):
     driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
     driver.implicitly_wait(0.6)
     driver.get(URL)
+    driver.implicitly_wait(0.6)
     soup = driver.page_source
     return soup
 
