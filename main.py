@@ -19,7 +19,7 @@ from decouple import config
 import random
 import json
 import requests
-from scrape_products import get_title, get_price,get_store_link,get_about_product,get_availability,get_rating, get_review_count
+from scrape_products import get_title, get_price,get_store_link,get_about_product,get_availability,get_rating, get_review_count,load_browser, is_captcha
 
 
 app = FastAPI()
@@ -31,43 +31,32 @@ data_base = client["product_scraper"]
 tables_columns = data_base["products"]
 
 
-
-
 @app.get("/")
 def index():
     return {"details": "good"}
 
-def is_capcha(driver):
-    text = driver.find_elements(By.CSS_SELECTOR, 'h4')[0].text
-    if text == 'Enter the characters you see below':
-        return True
-    else:
-        return False
-
-
-
 @app.get("/aws-product-scrapper")
 def aws_scrapper(product_id="B00I9MZZTC"):
     dict = {}
-    HEADERS = ({'User-Agent':
-            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36',
-            'Accept-Language': 'en-US, en;q=0.5'})
-    URL = f"https://www.amazon.com/dp/{product_id}"
 
-    with requests.Session() as session:
-        webpage = session.get(URL, headers=HEADERS)
-        soup = BeautifulSoup(webpage.content, "lxml")
+    html = load_browser(product_id)
+    soup = BeautifulSoup(html, "lxml")
 
-        dict = {
-            "product_title": get_title(soup),
-            "price": get_price(soup),
-            "about_item": json.dumps(get_about_product(soup)),
-            "product_rating": get_rating(soup),
-            "total_rating": get_review_count(soup),
-            "availablity": get_availability(soup),
-            "store_link":get_store_link(soup),
-            "product_id": product_id
-        }
+    if is_captcha(soup):
+        html = load_browser(product_id)
+        soup = BeautifulSoup(html, "lxml")
+
+
+    dict = {
+        "product_title": get_title(soup),
+        "price": get_price(soup),
+        "about_item": json.dumps(get_about_product(soup)),
+        "product_rating": get_rating(soup),
+        "total_rating": get_review_count(soup),
+        "availablity": get_availability(soup),
+        "store_link":get_store_link(soup),
+        "product_id": product_id
+    }
 
     print("------------>", dict)
     try:

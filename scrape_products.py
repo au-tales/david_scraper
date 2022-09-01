@@ -3,6 +3,9 @@ from bs4 import BeautifulSoup
 from decouple import config
 import random
 import json
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 
 def get_proxy_ip():
     allProxies=[]
@@ -36,20 +39,18 @@ def get_title(soup):
 	return title_string
 
 def get_price(soup):
+    try:
+        price = soup.find("span", attrs={'id':'priceblock_ourprice'}).string.strip()
+    except AttributeError:
+        try:
+            price = soup.find("span", attrs={'id':'priceblock_dealprice'}).string.strip()
+        except AttributeError:
+            try:
+                price = soup.find("span", attrs={"class": "a-offscreen"}).string.strip()
+            except:
+                price=""
 
-	try:
-		price = soup.find("span", attrs={'id':'priceblock_ourprice'}).string.strip()
-
-	except AttributeError:
-
-		try:
-			# If there is some deal price
-			price = soup.find("span", attrs={'id':'priceblock_dealprice'}).string.strip()
-
-		except:
-			price = ""
-
-	return price
+    return price
 
 
 def get_rating(soup):
@@ -89,5 +90,28 @@ def get_about_product(soup):
     try:
         about = soup.find('div', attrs={"id": 'feature-bullets'}).text.strip()
     except AttributeError:
-        about = ""
+        about = "No discription found"
     return about
+
+
+def load_browser(product_id):
+    URL = f"https://www.amazon.com/dp/{product_id}"
+    options = Options()
+    options.add_argument('--proxy-server=%s' % get_proxy_ip())
+    options.headless = False
+
+    driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
+    driver.implicitly_wait(0.6)
+    driver.get(URL)
+    soup = driver.page_source
+    return soup
+
+def is_captcha(soup):
+    try:
+        if soup.select('div.a-box-inner > h4')[0].text == 'Enter the characters you see below':
+            return True
+        else:
+            return False
+    except Exception as e:
+        print("error at captcha", e)
+        return False
