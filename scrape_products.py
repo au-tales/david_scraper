@@ -96,6 +96,7 @@ def get_about_product(soup):
 
 def load_browser(product_id):
     URL = f"https://www.amazon.com/dp/{product_id}"
+    print('proxy_ip is -------->', get_proxy_ip())
     options = Options()
     options.add_argument('--proxy-server=%s' % get_proxy_ip())
     options.headless = False

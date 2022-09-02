@@ -41,10 +41,12 @@ def aws_scrapper(product_id="B00I9MZZTC"):
 
     html = load_browser(product_id)
     soup = BeautifulSoup(html, "lxml")
-
-    if is_captcha(soup):
+    flag = is_captcha(soup)
+    while flag:
         html = load_browser(product_id)
         soup = BeautifulSoup(html, "lxml")
+        flag = is_captcha(soup)
+
 
 
     dict = {
