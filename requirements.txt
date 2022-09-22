@@ -5,3 +5,4 @@ pymongo
 selenium
 webdriver-manager
 pytesseract
+beautifulsoup4
