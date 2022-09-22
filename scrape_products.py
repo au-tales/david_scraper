@@ -94,18 +94,19 @@ def get_about_product(soup):
     return about
 
 
-def load_browser(product_id):
+def load_browser(product_id, is_headless =  False):
     URL = f"https://www.amazon.com/dp/{product_id}"
     print('proxy_ip is -------->', get_proxy_ip())
     options = Options()
     options.add_argument('--proxy-server=%s' % get_proxy_ip())
-    options.headless = False
+    options.headless = is_headless
 
     driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
     driver.implicitly_wait(0.6)
     driver.get(URL)
     driver.implicitly_wait(0.6)
     soup = driver.page_source
+    driver.quit()
     return soup
 
 def is_captcha(soup):

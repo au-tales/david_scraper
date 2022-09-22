@@ -36,28 +36,30 @@ def index():
     return {"details": "good"}
 
 @app.get("/aws-product-scrapper")
-def aws_scrapper(product_id="B00I9MZZTC"):
+def aws_scrapper(is_headless:bool, product_id="B00I9MZZTC"):
     dict = {}
 
-    html = load_browser(product_id)
+    html = load_browser(product_id, is_headless)
     soup = BeautifulSoup(html, "lxml")
     flag = is_captcha(soup)
+    print('scrapper is facing captcha', flag)
     while flag:
-        html = load_browser(product_id)
+        html = load_browser(product_id, is_headless)
         soup = BeautifulSoup(html, "lxml")
         flag = is_captcha(soup)
+        print('scrapper is facing captcha', flag)
 
 
 
     dict = {
-        "product_title": get_title(soup),
-        "price": get_price(soup),
+        "product_title": json.dumps(get_title(soup)),
+        "price": json.dumps(get_price(soup)),
         "about_item": json.dumps(get_about_product(soup)),
-        "product_rating": get_rating(soup),
-        "total_rating": get_review_count(soup),
-        "availablity": get_availability(soup),
-        "store_link":get_store_link(soup),
-        "product_id": product_id
+        "product_rating": json.dumps(get_rating(soup)),
+        "total_rating": json.dumps(get_review_count(soup)),
+        "availablity": json.dumps(get_availability(soup)),
+        "store_link": json.dumps(get_store_link(soup)),
+        "product_id": json.dumps(product_id),
     }
 
     print("------------>", dict)
@@ -65,11 +67,11 @@ def aws_scrapper(product_id="B00I9MZZTC"):
         find_object = [x for x in tables_columns.find({'product_id': f"{product_id}"})][0]
         if "_id" in find_object:
             tables_columns.find_one_and_update({'_id': find_object['_id']}, {'$set': dict})
-    except IndexError as e:
+    except Exception as e:
         tables_columns.insert_one(dict)
 
 
-    return {"data": dict}
+    return {"data": 200}
 
 
 @app.get("/all-products")
